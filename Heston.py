@@ -16,7 +16,7 @@ start = time.time()
 #============= Control Panel =============
 call1 = False # call 1 and call 2 are just two example of call pricining
 call2 = False
-callMC = False # call price for MC comparisions
+callMC = True # call price for MC comparisions
 set1 = False # Oscillatory Behaviour 1
 set2 = False # Oscillatory Behaviour 2
 set3 = False # Discontinuity Behaviour 1
@@ -29,7 +29,7 @@ diffplot = False # Plot of the difference of BSM and Heston call prices
 impl_vol = False # Extract the implied volatility through a bisection algorithm
 
 MONTECARLO = False
-samplepaths = True
+samplepaths = False
 #=========================================
 
 def Heston(phi, S, K, r, q, v0, kappa, sgm, rho, theta, lamb, tau, Trap):
@@ -146,9 +146,11 @@ if call2:
 
 if callMC:
     phi = np.linspace(0.00001,50,int(50/0.001))
-    S = 100; K = 90; r = 0.03; q = 0.02; v0 = 0.03; kappa = 6.2; sgm = 0.5; rho = -0.7; theta = 0.06; lamb = 0; tau = 0.25
-    C = Heston(phi,S,K,r,q,v0,kappa,sgm,rho,theta,lamb,tau,0)[1]
-    print(f'Call Price closed form: {C}')
+    S = 100; K = 90; r = 0.03; q = 0.02; v0 = 0.03; kappa = 6.2; sgm = 0.5; rho = -0.7; theta = 0.06; lamb = 0; tau = 0.25; c = theta
+    CH = Heston(phi,S,K,r,q,v0,kappa,sgm,rho,theta,lamb,tau,0)[1]
+    # CB = BSMCase(phi, S, K, r, c, np.sqrt(c), kappa, tau)[0]
+    print(f'Call Price closed form Heston: {CH}')
+    # print(f'Call Price closed form BSM: {CB}')
 
 #=========================   Oscillatory Behaviour   =========================
 if set1:
@@ -573,7 +575,7 @@ understand why it do not work properly giving me a wrong estimate. Furthermore, 
 
 if MONTECARLO: 
     N = 100000
-    K = 90; r = 0.03; q = 0.02; kappa = 6.2; sgm = 0.5; rho = -0.; theta = 0.06; lamb = 0; tau = 0.25
+    K = 90; r = 0.03; q = 0.02; kappa = 6.2; sgm = 0.5; rho = -0.7; theta = 0.06; lamb = 0; tau = 0.25
     tspan = np.linspace(0,tau,200)
     dt = tau/len(tspan)
 
@@ -898,15 +900,16 @@ if MONTECARLO:
     
 
 if samplepaths:
-    N = 50; tau = 2.5
-    tspan = np.linspace(0,tau,300)
+    N = 1000; tau = 0.25
+    tspan = np.linspace(0,tau,200)
     dt = tau/len(tspan)
     v = np.zeros(len(tspan))
     S = np.zeros(len(tspan))
+    ST = np.zeros(N)
     v[0]= 0.03
     S[0] = 100
-    r = 0.03
-    theta = 0.06; kappa = 6.2; sgm = 0.5; rho = -0.7; q = 0.02
+    cmap = cm.get_cmap(name='Reds')    
+    K = 90; r = 0.03; q = 0.02; kappa = 6.2; sgm = 0.5; rho = -0.7; theta = 0.06; lamb = 0; tau = 0.25
     for n in tqdm(range(N)):
         for i in range(1,len(tspan)):
             Zv = np.random.normal(0,1)
@@ -914,9 +917,12 @@ if samplepaths:
             Zs = rho*Zv + np.sqrt(1-rho**2)*Z
             v[i] = (np.sqrt(v[i-1])+0.5*sgm*np.sqrt(dt)*Zv)**2 + kappa*(theta-v[i-1])*dt - 0.25*sgm**2*dt
             S[i] = S[i-1]*np.exp((r-q-(1/2)*v[i-1])*dt + np.sqrt(v[i-1])*np.sqrt(dt)*Zs)
-        plt.plot(tspan,S, linewidth = 0.6, alpha=0.9)
+        ST[n] = S[-1] # Stock Price at maturity
+        plt.plot(tspan,S, c = cmap(n), linewidth = 0.6, alpha=0.9)
     plt.xlabel('Time')
     plt.ylabel('S(t)')
+
+
 
 plt.show()
 
