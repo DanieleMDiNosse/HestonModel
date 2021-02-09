@@ -568,6 +568,8 @@ time.sleep(0.5)
 # ==========================    MONTECARLO SIMULATION    ==============================
 # ======================================================================================
 # ======================================================================================
+'''The code for the Quadratic Exponential that I wrote is essentially the same as the one you can find in the book of Rouah (see last pages for the link), but I don't
+understand why it do not work properly giving me a wrong estimate. Furthermore, this wrong estimate is the same that Rouah's code generate in Matlab, even if in the book he puts a vary good one!! Is he a LIAR?!'''
 
 if MONTECARLO: 
     N = 100000
@@ -897,7 +899,7 @@ if MONTECARLO:
 
 if samplepaths:
     N = 50; tau = 2.5
-    tspan = np.linspace(0,tau,5000)
+    tspan = np.linspace(0,tau,300)
     dt = tau/len(tspan)
     v = np.zeros(len(tspan))
     S = np.zeros(len(tspan))
@@ -913,11 +915,10 @@ if samplepaths:
             v[i] = (np.sqrt(v[i-1])+0.5*sgm*np.sqrt(dt)*Zv)**2 + kappa*(theta-v[i-1])*dt - 0.25*sgm**2*dt
             S[i] = S[i-1]*np.exp((r-q-(1/2)*v[i-1])*dt + np.sqrt(v[i-1])*np.sqrt(dt)*Zs)
         plt.plot(tspan,S, linewidth = 0.6, alpha=0.9)
-        # plt.hlines(np.mean(v), 0, max(tspan), colors='k',label='<v(t)> = %.2f' % np.mean(v))
-    # plt.grid(True)
     plt.xlabel('Time')
     plt.ylabel('S(t)')
-        # plt.title(fr'Square Root Process with long-term mean $\theta={theta}$')
+
+plt.show()
 
 
 
