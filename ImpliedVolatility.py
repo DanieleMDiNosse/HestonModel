@@ -16,9 +16,10 @@ def BSM(S, K, r, sgmBSM, tau):
     
     return Call, Put
 
-msft = yf.Ticker("SPY")
-opt = msft.option_chain('2021-03-26')
+spy = yf.Ticker("SPY")
+opt = spy.option_chain('2021-02-22')
 call = opt.calls
+call = call.dropna()
 strikes = call['strike']
 iv = call['impliedVolatility']
 plt.figure()
