@@ -26,7 +26,7 @@ set6 = False # Heston Little Trap vs Heston
 DistributionLogS = False # Effect of rho and sgm on the distribution of logS
 diffcall = False # Simple comparision of the prices given by the two model
 diffplot = False # Plot of the difference of BSM and Heston call prices
-impl_vol = True # Extract the implied volatility through a bisection algorithm
+impl_vol = False # Extract the implied volatility through a bisection algorithm
 
 MONTECARLO = False
 samplepaths = False
@@ -37,30 +37,30 @@ def Heston(phi, S, K, r, q, v0, kappa, sgm, rho, theta, lamb, tau, Trap):
     '''Heston model with the original formulation of th characteristic function (Heston 1993) and the Little Trap formulation (Albrecher 2007). It
     returns, in order, the RealPart of the integrand of the in-the-money probability P1 and P2, the value of the Call, the value of the Put and the Characteristic
     Function.
-    
+
     Trap == 1 for the Little Trap Formulation'''
-    
+
     x = np.log(S)
     a = kappa*theta
-    i = np.complex(0,1) 
+    i = np.complex(0,1)
     b1 = (kappa+lamb-rho*sgm)
     b2 = (kappa+lamb)
     b = np.array([b1,b2])
-    
+
     d1 = np.sqrt((rho*sgm*i*phi - b[0])**2 - sgm**2*(2*0.5*i*phi - phi**2))
     d2 = np.sqrt((rho*sgm*i*phi - b[1])**2 - sgm**2*(-2*0.5*i*phi - phi**2))
     d = np.array((d1,d2))
-    
+
     g1 = (b[0] - rho*sgm*i*phi + d[0]) / (b[0] - rho*sgm*i*phi - d[0])
     g2 = (b[1] - rho*sgm*i*phi + d[1]) / (b[1] - rho*sgm*i*phi - d[1])
     g = np.array((g1,g2))
-    
+
     if Trap == 0:
         G = (1 - g*np.exp(d*tau)) / (1 - g)
         C1 = (r-q)*i*phi*tau + a/sgm**2 *((b[0] - rho*sgm*i*phi + d[0])*tau - 2*np.log(G[0]))
         C2 = (r-q)*i*phi*tau + a/sgm**2 *((b[1] - rho*sgm*i*phi + d[1])*tau - 2*np.log(G[1]))
         C = np.array((C1,C2))
-        
+
         D1 = (b[0] - rho*sgm*i*phi + d[0])/sgm**2 * ((1 - np.exp(d[0]*tau))/(1 - g[0]*np.exp(d[0]*tau)))
         D2 = (b[1] - rho*sgm*i*phi + d[1])/sgm**2 * ((1 - np.exp(d[1]*tau))/(1 - g[1]*np.exp(d[1]*tau)))
         D = np.array((D1,D2))
@@ -69,24 +69,24 @@ def Heston(phi, S, K, r, q, v0, kappa, sgm, rho, theta, lamb, tau, Trap):
         D1 = (b[0] - rho*sgm*i*phi - d[0])/sgm**2 * ((1 - np.exp(-d[0]*tau))/(1 - c[0]*np.exp(-d[0]*tau)))
         D2 = (b[1] - rho*sgm*i*phi - d[1])/sgm**2 * ((1 - np.exp(-d[1]*tau))/(1 - c[1]*np.exp(-d[1]*tau)))
         D = np.array((D1,D2))
-        
+
         G = (1-c*np.exp(-d*tau))/(1-c)
-        
+
         C1 = (r-q)*i*phi*tau + a/sgm**2 *((b[0] - rho*sgm*i*phi - d[0])*tau - 2*np.log(G[0]))
         C2 = (r-q)*i*phi*tau + a/sgm**2 *((b[1] - rho*sgm*i*phi - d[1])*tau - 2*np.log(G[1]))
         C = np.array((C1,C2))
-    
+
     f = np.exp(C + D*v0 + i*phi*x)
-    RealPart = np.real(np.exp(-i*phi*np.log(K)) * f/(i*phi)) 
-    
+    RealPart = np.real(np.exp(-i*phi*np.log(K)) * f/(i*phi))
+
     I1 = np.trapz(RealPart[0], dx = 0.001)
     I2 = np.trapz(RealPart[1], dx = 0.001)
     P1 = 0.5 + 1/(math.pi) * I1
     P2 = 0.5 + 1/(math.pi) * I2
-    
+
     Call = S*np.exp(-q*tau)*P1 - K*np.exp(-r*tau)*P2
     Put = Call - S*np.exp(-q*tau) + K*np.exp(-r*tau)
-    
+
     return RealPart, Call, Put, f
 
 def BSMCase(phi, S, K, r, sgmBSM, tau):
@@ -94,19 +94,19 @@ def BSMCase(phi, S, K, r, sgmBSM, tau):
     To obtain the BSM case from the Heston model it's required that sgm = 0 and theta = v0 = c in the original formulation.
     The BSM variance is sgmBSM = sqrt(v0) = sqrt(c)'''
 
-    i = np.complex(0,1) 
+    i = np.complex(0,1)
 
     f2 = np.exp(i*phi*(np.log(S) + (r - 0.5*sgmBSM**2)*tau) - 0.5*phi**2*sgmBSM**2*tau)
-    
+
     d1 = (np.log(S/K) + (r + sgmBSM**2*0.5)*tau) / (sgmBSM*np.sqrt(tau))
     d2 = d1 - sgmBSM*np.sqrt(tau)
-    
-    phi_one = norm.cdf(d1) 
+
+    phi_one = norm.cdf(d1)
     phi_two = norm.cdf(d2)
-    
+
     Call = S*phi_one - K*np.exp(-r*tau)*phi_two
     Put = Call - S + K*np.exp(-r*tau)
-    
+
     return Call, Put, f2
 
 #=========================   Option Price   =========================
@@ -126,13 +126,13 @@ if call1:
     plt.grid(True)
     plt.legend()
     # print(f'Call Price closed form: {C}')
-    
+
 if call2:
     phi = np.linspace(0.00001,250,int(150/0.001))
     S = 100; K = 100; r = 0.03; q = 0.02; v0 = 0.05; kappa = 5; sgm = 0.5; rho = -0.8; theta = 0.05; lamb = 0; tau = 0.5
     S = np.linspace(0.01,200,200); TAU = [0, 1, 2]
     C = np.zeros(len(S))
-    CBS = np.zeros(len(S)) 
+    CBS = np.zeros(len(S))
     plt.figure()
     for tau in TAU:
         for i, s in tqdm(zip(range(len(C)),S), desc=f'{tau}'):
@@ -155,7 +155,7 @@ if callMC:
 if set1:
     phi = np.linspace(0.00001,100,100000)
     S = 10; K = 10; r = 0; q = 0.0; v0 = 0.07; kappa = 10; sgm = 0.09; rho = -0.9; theta = 0.07; lamb = 0; tau = 1
-    
+
     plt.figure()
     plt.plot(phi,Heston(phi,S,K,r,q,v0,kappa,sgm,rho,theta,lamb,tau,1)[0][0], label = '1 year maturity')
 
@@ -163,15 +163,15 @@ if set2:
     phi = np.linspace(0.00001,80,int(80/0.001))
     phi1 = np.linspace(0.00001,250,int(250/0.001))
     PHI = [phi,phi1]
-    S = 7; K = 10; r = 0; q = 0.0; v0 = 0.01; kappa = 10; sgm = 0.175; rho = -0.9; theta = 0.01; lamb = 0; tau = 1/52    
-    
+    S = 7; K = 10; r = 0; q = 0.0; v0 = 0.01; kappa = 10; sgm = 0.175; rho = -0.9; theta = 0.01; lamb = 0; tau = 1/52
+
     plt.plot(phi,Heston(phi,S,K,r,q,v0,kappa,sgm,rho,theta,lamb,tau,1)[0][0], label = '1/52 years maturity')
     plt.legend()
     plt.xlabel(r'$\phi$')
     plt.ylabel(r'Value of the integrand ($f_1$)')
     plt.grid(True)
-    
-    
+
+
     S = np.linspace(0.5,14,300)
     C0 = np.zeros(len(S))
     C1 = np.zeros(len(S))
@@ -186,17 +186,17 @@ if set2:
     plt.xlabel('S/K')
     plt.ylabel('C/K')
     plt.legend()
-    
+
 #=========================   Discontinuity Behaviour   =========================
 if set3:
     phi = np.linspace(0.00001,100,int(100/0.001))
     S = 100; K = 100; r = 0.; q = 0.0; v0 = 0.05; kappa = 10; sgm = 0.75; rho = -0.9; theta = 0.05; lamb = 0; tau = 3
-    
+
     S = np.linspace(0.5,200,300)
     C0 = np.zeros(len(S))
     C1 = np.zeros(len(S))
-    
-    
+
+
     plt.figure()
     for i, s in tqdm(zip(range(len(C0)),S)):
         C0[i] = Heston(phi,s,K,r,q,v0,kappa,sgm,rho,theta,lamb,tau,1)[1]
@@ -207,21 +207,21 @@ if set3:
     plt.xlabel('S/K')
     plt.ylabel('C/K')
     plt.legend()
-    
+
     plt.figure()
     plt.plot(phi,Heston(phi,S,K,r,q,v0,kappa,sgm,rho,theta,lamb,tau,0)[0][0], label= '3 years maturity')
-    
+
 if set4:
     phi = np.linspace(0.00001,10,10000)
     S = 100; K = 100; r = 0.; q = 0.0; v0 = 0.05; kappa = 10; sgm = 0.09; rho = -0.9; theta = 0.05; lamb = 0; tau = 1
-   
+
     plt.plot(phi,Heston(phi,S,K,r,q,v0,kappa,sgm,rho,theta,lamb,tau,0)[0][0], label = '1 years maturity')
     plt.grid(True)
     plt.legend()
     plt.xlabel(r'$\phi$')
     plt.ylabel(r'Value of the integrand ($f_1$)')
     plt.show()
-    
+
 ####### Figure 1.1 #######
 if set5:
     phi = np.linspace(-60,60,int(100/0.001))
@@ -242,7 +242,7 @@ if set5:
 if set6:
     phi = np.linspace(0.00001,15,int(15/0.001))
     S = 100; K = 100; r = 0.; q = 0.0; v0 = 0.0175; kappa = 1.5768; sgm = 0.5751; rho = -0.5711; theta = 0.0398; lamb = 0; tau = 3.5
-    
+
     plt.figure()
     plt.plot(phi,Heston(phi,S,K,r,q,v0,kappa,sgm,rho,theta,lamb,tau,0)[0][0], label= 'Heston Formulation')
     plt.plot(phi,Heston(phi,S,K,r,q,v0,kappa,sgm,rho,theta,lamb,tau,1)[0][0], label= 'Albrecher Formulation')
@@ -251,18 +251,18 @@ if set6:
     plt.xlabel(r'$\phi$')
     plt.ylabel(r'Integrand ($f_1$)')
     plt.show()
-    
+
 
 #=========================   Distribution on lnS_T and Effects of rho and sgm   =========================
 
 if DistributionLogS:
    phi = np.linspace(0.0001,100,int(100/0.1))
    x = np.linspace(4.3,4.92,int(100/0.1))
-   S = 100; K = 100; r = 0.; q = 0.0; v0 = 0.01; kappa = 2; theta = 0.01; lamb = 0; tau = 0.5 
-   
+   S = 100; K = 100; r = 0.; q = 0.0; v0 = 0.01; kappa = 2; theta = 0.01; lamb = 0; tau = 0.5
+
    i = np.complex(0,1)
    q = [] ; rho = [-0.8, 0., 0.8]; sgm = [0.0001, 0.2, 0.4]
-   
+
    plt.figure()
    for vak in tqdm(rho,desc=f'{rho}'):
        f = Heston(phi,S,K,r,0.0,v0,kappa,0.1,vak,theta,lamb,tau,1)[3][1]
@@ -271,35 +271,35 @@ if DistributionLogS:
            q.append(tmp)
        plt.plot(x,q, label = fr'$\rho$ = {vak}')
        q = []
-   plt.legend()  
+   plt.legend()
    plt.xlabel(r'$logS_T$')
    plt.title(r'Distribution of $logS_T$ varying the correlation $\rho$')
    plt.grid(True)
-   
+
    q=[]
-   
+
    plt.figure()
    for val in tqdm(sgm,desc=f'{sgm}'):
        f = Heston(phi,S,K,r,0.0,v0,kappa,val,0.,theta,lamb,tau,1)[3][1]
        for vak in x:
            tmp = 1/math.pi * np.trapz(np.real(np.exp(-vak*phi*i)*f), dx = 0.001)
            q.append(tmp)
-       plt.plot(x,q, label = fr'$\sigma$ = {val}')   
+       plt.plot(x,q, label = fr'$\sigma$ = {val}')
        q = []
-       
+
    plt.legend()
    plt.xlabel(r'$logS_T$')
    plt.title(r'Distribution of $logS_T$ varying the variance of volatility $\sigma$')
    plt.grid(True)
-   
+
 
 #=========================   Differences in Price PLOT   =========================
 
 if diffcall:
-    
+
     phi = np.linspace(0.00001,100,int(100/0.001))
     S = 100; K = 100; r = 0.03; q = 0.0; c = 0.05; v0 = 0.05; kappa = 5; sgm = 0.000001; rho = 0; theta = 0.05; lamb = 0; tau = 0.5
-    
+
     BSM = BSMCase(phi, S, K, r, np.sqrt(c), tau)
     H = Heston(phi,S,K,r,q,v0,kappa,sgm,rho,theta,lamb,tau,1)
     print(f'\n BSM Call Price --> {BSM[0]} \n Heston Call Price --> {H[1]} \n BSM Put Price --> {BSM[1]} \n Heston Put Price --> {H[2]}')
@@ -310,45 +310,45 @@ if diffplot:
     phi = np.linspace(0.00001,100,int(100/0.001))
     K = 100; r = 0.; q = 0.0; v0 = 0.01; kappa = 2; theta = 0.01; lamb = 0; tau = 0.5 # Heston
     K = 100; c = 0.01; # BSM
-    
+
     S = np.linspace(70,140,100) ; RHO = [-0.5, 0.5]; SGM = [np.sqrt(2)*0.0710, np.sqrt(2)*0.0704] # la scrivo direttamente a mano per ora
-    
+
     plt.figure()
     for rho, sgm in zip(RHO, SGM):
-        
+
         BSM_Calls = np.array([BSMCase(phi, s, K, r, sgm, tau)[0] for s in S])
         Hest_Calls = np.array([Heston(phi,s,K,r,q,v0,kappa,0.1,rho,theta,lamb,tau,1)[1] for s in S])
-    
+
         plt.plot(S, Hest_Calls - BSM_Calls, label = fr'$\rho$ = {rho}')
     plt.legend()
     plt.grid(True)
     plt.ylabel('Heston-BSM call price')
     plt.xlabel('Spot Price')
     plt.title(r'Heston-BSM: $\rho$ effect')
-  
-    
+
+
     plt.figure()
     for sgm in [0.1,0.2]:
-        
+
         BSM_Calls1 = np.array([BSMCase(phi, s, K, r, np.sqrt(2)*0.0707, tau)[0] for s in S])
         Hest_Calls1 = np.array([Heston(phi,s,K,r,q,v0,kappa,sgm,0,theta,lamb,tau,1)[1] for s in S])
         plt.plot(S, Hest_Calls1 - BSM_Calls1, label = fr'$\sigma$ = {sgm}')
     plt.legend()
     plt.grid(True)
     plt.title(r'Heston-BSM: $\sigma$ effect')
-    
-    
+
+
 #=========================    Implied Volatility    ==============================
 if impl_vol:
-    
-    phi = np.linspace(0.00001,100,int(100/0.001)); 
+
+    phi = np.linspace(0.00001,100,int(100/0.001));
     S = 100; r = 0.05; q = 0.0; tau = 0.25; kappa = 2; theta = 0.01; lamb = 0; v0 = 0.01; c = 0.01
-    K = np.linspace(95,105,100) 
+    K = np.linspace(95,105,100)
     RHO = [-0.3]; KAPPA = [1.0, 2.0, 5.0]; SIGMA = [0.35, 0.55, 0.8]; THETA = [0.010, 0.015, 0.020]; V_0 = [0.010, 0.015, 0.020]; TAU = np.linspace(0.2,1,5)
-    
+
     MaxIter = 20 # bisection iteration
     tol = 0.0001 # bisection tolerance
-    
+
     plt.figure()
     for rho in RHO:
         sgm_implied_rho = []
@@ -356,20 +356,20 @@ if impl_vol:
         for k in tqdm(K, desc=f'rho = {rho} '):
             sgm_low = 0.00001
             sgm_high = 1.
-            
+
             call_low = BSMCase(phi, S, k, r, sgm_low, tau)[0]
             call_high = BSMCase(phi, S, k, r, sgm_high, tau)[0]
-                
+
             call_market = Heston(phi,S,k,r,q,v0,kappa,0.2,rho,theta,lamb,tau,1)[1]
-            
+
             lowCdif = call_market - call_low
             highCdif = call_market - call_high
-            
+
             if lowCdif*highCdif > 0:
                 # sgm_implied.append(-1)
                 print('Out of the loop: Call Market is always greater than Call Low and Call High')
                 break
-            
+
             for i in range(MaxIter):
                 sgm_mid = (sgm_low + sgm_high)/2
                 call_new = BSMCase(phi, S, k, r, sgm_mid, tau)[0]
@@ -380,17 +380,17 @@ if impl_vol:
                     sgm_low = sgm_mid
                 if call_mid < 0:
                     sgm_high = sgm_mid
-            
+
         plt.plot(np.linspace(int(min(K)),int(max(K)),len(sgm_implied_rho)), sgm_implied_rho, label = fr'$\rho$ = {rho}')
-    
+
     plt.legend()
     plt.grid(True)
     plt.xlabel('Strike Price')
     plt.ylabel('Implied Volatility')
     plt.title(r'Effect of the correlation $\rho$ on the implied volatility')
     plt.show()
-    
-    
+
+
     plt.figure()
     for sgm in SIGMA:
         time.sleep(0.5)
@@ -398,20 +398,20 @@ if impl_vol:
         for k in tqdm(K, desc=f'sigma = {sgm} '):
             sgm_low = 0.00001
             sgm_high = 1.
-            
+
             call_low = BSMCase(phi, S, k, r, sgm_low, tau)[0]
             call_high = BSMCase(phi, S, k, r, sgm_high, tau)[0]
-                
+
             call_market = Heston(phi,S,k,r,q,v0,kappa,sgm,0,theta,lamb,tau,1)[1]
-            
+
             lowCdif = call_market - call_low
             highCdif = call_market - call_high
-            
+
             if lowCdif*highCdif > 0:
                 # sgm_implied.append(-1)
                 print('Out of the loop: Call Market is always greater than Call Low and Call High')
                 break
-            
+
             for i in range(MaxIter):
                 sgm_mid = (sgm_low + sgm_high)/2
                 call_new = BSMCase(phi, S, k, r, sgm_mid, tau)[0]
@@ -422,17 +422,17 @@ if impl_vol:
                     sgm_low = sgm_mid
                 if call_mid < 0:
                     sgm_high = sgm_mid
-            
+
         plt.plot(np.linspace(int(min(K)),int(max(K)),len(sgm_implied_sgm)), sgm_implied_sgm, label = fr'$\sigma$ = {sgm}')
-    
+
     plt.legend()
     plt.grid(True)
     plt.xlabel('Strike Price')
     plt.ylabel('Implied Volatility')
     plt.title(r'Effect of the volatility $\sigma$ on the implied volatility')
     plt.show()
-    
-    
+
+
     plt.figure()
     for kappa in KAPPA:
         time.sleep(0.5)
@@ -440,20 +440,20 @@ if impl_vol:
         for k in tqdm(K, desc=f'kappa = {kappa} '):
             sgm_low = 0.00001
             sgm_high = 1.
-            
+
             call_low = BSMCase(phi, S, k, r, sgm_low, tau)[0]
             call_high = BSMCase(phi, S, k, r, sgm_high, tau)[0]
-                
+
             call_market = Heston(phi,S,k,r,q,v0,kappa,0.2,0,theta,lamb,tau,1)[1]
-            
+
             lowCdif = call_market - call_low
             highCdif = call_market - call_high
-            
+
             if lowCdif*highCdif > 0:
                 # sgm_implied.append(-1)
                 print('Out of the loop: Call Market is always greater than Call Low and Call High')
                 break
-            
+
             for i in range(MaxIter):
                 sgm_mid = (sgm_low + sgm_high)/2
                 call_new = BSMCase(phi, S, k, r, sgm_mid, tau)[0]
@@ -464,17 +464,17 @@ if impl_vol:
                     sgm_low = sgm_mid
                 if call_mid < 0:
                     sgm_high = sgm_mid
-            
+
         plt.plot(np.linspace(int(min(K)),int(max(K)),len(sgm_implied_kappa)), sgm_implied_kappa, label = fr'$\kappa$ = {kappa}')
-    
+
     plt.legend()
     plt.grid(True)
     plt.xlabel('Strike Price')
     plt.ylabel('Implied Volatility')
     plt.title(r'Effect of the mean reversion speed $\kappa$ on the implied volatility')
     plt.show()
-    
-    
+
+
     plt.figure()
     for theta in THETA:
         time.sleep(0.5)
@@ -482,20 +482,20 @@ if impl_vol:
         for k in tqdm(K, desc=f'theta = {theta} '):
             sgm_low = 0.00001
             sgm_high = 1.
-            
+
             call_low = BSMCase(phi, S, k, r, sgm_low, tau)[0]
             call_high = BSMCase(phi, S, k, r, sgm_high, tau)[0]
-                
+
             call_market = Heston(phi,S,k,r,q,v0,kappa,0.2,0,theta,lamb,tau,1)[1]
-            
+
             lowCdif = call_market - call_low
             highCdif = call_market - call_high
-            
+
             if lowCdif*highCdif > 0:
                 # sgm_implied.append(-1)
                 print('Out of the loop: Call Market is always greater than Call Low and Call High')
                 break
-            
+
             for i in range(MaxIter):
                 sgm_mid = (sgm_low + sgm_high)/2
                 call_new = BSMCase(phi, S, k, r, sgm_mid, tau)[0]
@@ -506,16 +506,16 @@ if impl_vol:
                     sgm_low = sgm_mid
                 if call_mid < 0:
                     sgm_high = sgm_mid
-            
+
         plt.plot(np.linspace(int(min(K)),int(max(K)),len(sgm_implied_theta)), sgm_implied_theta, label = fr'$\theta$ = {theta}')
-    
+
     plt.legend()
     plt.grid(True)
     plt.xlabel('Strike Price')
     plt.ylabel('Implied Volatility')
     plt.title(r'Effect of the long term variance mean $\theta$ on the implied volatility')
     plt.show()
- 
+
 time.sleep(0.5)
 # ======================================================================================
 # ======================================================================================
@@ -525,7 +525,7 @@ time.sleep(0.5)
 '''The code for the Quadratic Exponential that I wrote is essentially the same as the one you can find in the book of Rouah (see last pages for the link), but I don't
 understand why it do not work properly giving me a wrong estimate. Furthermore, this wrong estimate is the same that Rouah's code generate in Matlab, even if in the book he puts a vary good one!! Is he a LIAR?!'''
 
-if MONTECARLO: 
+if MONTECARLO:
     if callMC == False:
         print('Ehi ehi, your code is going to fail. You must set True callMC')
     N = 5000
@@ -536,22 +536,22 @@ if MONTECARLO:
     call_tmp = np.empty(0)
     call_mean_tmp = np.empty(0)
     num_v_negative = 0
-    
+
     Eulero = False
     Milstein = True; correlation_plot = False;
     Quadratic_Exponential = False
     Pathwise = False
     TransformedVolatility = False
-    
 
-    
+
+
     if Eulero:
         print('Euler ------------------------------------------------------------')
         time.sleep(0.5)
-        
+
         logS_TN = np.zeros(N)
         v_plot = []
-        
+
         num_v_negative = 0
         for i in tqdm(range(N)):
             S_old = 100
@@ -577,7 +577,7 @@ if MONTECARLO:
         SE = np.sqrt(1/(N-1) * np.sum((call_tmp-call)**2))/np.sqrt(N)
         z_a2 = -ndtri(0.01/2)
         print(f'Standard Error: {SE}')
-        print(f'Confidence Interval: {call} +- {z_a2*SE}')  
+        print(f'Confidence Interval: {call} +- {z_a2*SE}')
         # plt.figure()
         # plt.hlines(C,0,len(call_tmp),colors = 'k',linewidth = 1, label = 'Closed form solution')
         # # plt.hlines(call,0,len(call_tmp),colors = 'r',linewidth = 1, label = 'MC solution')
@@ -589,24 +589,24 @@ if MONTECARLO:
         # plt.ylabel('ith call price')
         # plt.legend()
         # plt.grid(True)
-        
+
         plt.figure()
         plt.plot(C-call_mean_tmp, c = 'k', linewidth = 1, alpha = 0.9)
         plt.xlabel('Monte Carlo iterations')
         plt.ylabel('CF price - MC price')
         plt.grid(True)
-        
+
         print('------------------------------------------------------------------')
-        
+
     print()
     time.sleep(0.5)
     if Milstein:
         print('Milstein ---------------------------------------------------------')
         time.sleep(0.5)
-        
+
         S_plot = [100]
         v_plot = [0.03]
-        
+
         for i in tqdm(range(N)):
             S_old = 100
             v_old = 0.03
@@ -643,13 +643,13 @@ if MONTECARLO:
         plt.ylabel('ith call price')
         plt.legend()
         plt.grid(True)
-        
+
         plt.figure()
         plt.plot(C-call_mean_tmp, c='k',linewidth = 1, alpha = 0.9)
         plt.xlabel('Monte Carlo iterations')
         plt.ylabel('CF price - MC price')
         plt.grid(True)
-        
+
         if correlation_plot:
             fig, ax1 = plt.subplots()
             ax1.plot(S_plot, color = 'k', label = 'Stock Price', alpha = 0.9)
@@ -658,31 +658,31 @@ if MONTECARLO:
             fig.legend()
 
         print('------------------------------------------------------------------')
-             
+
     time.sleep(0.5)
     if Quadratic_Exponential:
         print('Quadratic exponential --------------------------------------------')
         time.sleep(0.5)
-        
+
         phi_c = 1.5 #Anderson(2008)
         gamma1 = 0.5; gamma2 = 0.5
         K0 = -((kappa*rho*theta)/sgm)*dt
         K1 = (kappa*rho/sgm -0.5)*gamma1*dt - rho/sgm; K2 = (kappa*rho/sgm -0.5)*gamma2*dt + rho/sgm
         K3 = (1-rho**2)*gamma1*dt; K4 = (1-rho**2)*gamma2*dt
         A = K2+0.5*K4
-        
+
         l = 0; j = 0
         E = np.exp(-kappa*dt)
         for i in tqdm(range(N)):
             X_old = np.log(100)
             v_old = 0.03
-            
+
             for t in tspan:
-                
+
                 m = theta + (v_old-theta)*E
                 s2 = (v_old*sgm**2*E)/kappa * (1-E) + ((theta*sgm**2)/(2*kappa))*(1-E)**2
                 phi = s2/m**2
-                
+
                 Uv = np.random.uniform(0,1)
                 # Simulation of the variance process
                 if phi <= phi_c:
@@ -707,7 +707,7 @@ if MONTECARLO:
                         phi_inv = 0
                     if (Uv > p) and (Uv <= 1):
                         phi_inv = (1/beta)*np.log((1-p)/(1-Uv))
-                    v_new = phi_inv 
+                    v_new = phi_inv
                     # Martingala Correction
                     if A < beta :
                         M = p + (beta*(1-p))/(beta-A)
@@ -733,7 +733,7 @@ if MONTECARLO:
         plt.legend()
         plt.grid(True)
         print(l,j)
-        
+
         plt.figure()
         plt.plot(C-call_mean_tmp)
         plt.xlabel('Monte Carlo iterations')
@@ -751,7 +751,7 @@ if MONTECARLO:
     if Pathwise:
         print('Pathwise Adapted Linearization Quadratic -------------------------')
         time.sleep(0.5)
-        
+
         for i in tqdm(range(N)):
             S_old = 100
             v_old = 0.03
@@ -759,7 +759,7 @@ if MONTECARLO:
                 Zv = np.random.normal(0,1)
                 Z = np.random.normal(0,1)
                 Zs = rho*Zv + np.sqrt(1-rho**2)*Z # Cholesky decomposition
-                
+
                 thetatil = theta - sgm**2/(4*kappa)
                 beta = Zv/np.sqrt(dt)
                 v_new = v_old + (kappa*(thetatil - v_old) + sgm*beta*np.sqrt(v_old)) * (1 + (sgm*beta - 2*kappa*np.sqrt(v_old))/(4*np.sqrt(v_old))*dt)*dt
@@ -783,7 +783,7 @@ if MONTECARLO:
         plt.ylabel('ith call price')
         plt.legend()
         plt.grid(True)
-        
+
         plt.figure()
         plt.plot(C-call_mean_tmp)
         plt.xlabel('Monte Carlo iterations')
@@ -794,18 +794,18 @@ if MONTECARLO:
         z_a2 = -ndtri(0.01/2)
         print(f'Standard Error: {SE}')
         print(f'Confidence Interval: {call} +- {z_a2*SE}')
-        print('------------------------------------------------------------------')        
+        print('------------------------------------------------------------------')
 
 
     time.sleep(0.5)
     if TransformedVolatility:
         print('Transformed Volatility -------------------------------------------')
         time.sleep(0.5)
-        
+
         logS_T = np.empty(0)
         E = np.exp(-kappa*dt)
         E1 = np.exp(-kappa*(dt/2))
-        
+
         for i in tqdm(range(N)):
             S_old = 100
             w_old = np.sqrt(0.03)
@@ -833,7 +833,7 @@ if MONTECARLO:
         SE = np.sqrt(1/(N-1) * np.sum((call_tmp-call)**2))/np.sqrt(N)
         z_a2 = -ndtri(0.01/2)
         print(f'Standard Error: {SE}')
-        print(f'Confidence Interval: {call} +- {z_a2*SE}')  
+        print(f'Confidence Interval: {call} +- {z_a2*SE}')
         plt.figure()
         plt.hlines(C,0,len(call_tmp),colors = 'k',linewidth = 1, label = 'Closed form solution')
         plt.hlines(call - z_a2*SE,0,len(call_tmp),colors = 'r',linewidth = 1, linestyles='dashed', alpha = 0.7, label = 'Confidence Interval MC')
@@ -844,14 +844,14 @@ if MONTECARLO:
         plt.ylabel('ith call price')
         plt.legend()
         plt.grid(True)
-        
+
         plt.figure()
         plt.plot(C-call_mean_tmp, c = 'k', linewidth = 1, alpha = 0.9)
         plt.xlabel('Monte Carlo iterations')
         plt.ylabel('CF price - MC price')
         plt.grid(True)
-        print('------------------------------------------------------------------')  
-    
+        print('------------------------------------------------------------------')
+
 
 if samplepaths:
     N = 1; tau = 0.25
@@ -862,7 +862,7 @@ if samplepaths:
     ST = np.zeros(N)
     v[0]= 0.03
     S[0] = 100
-    cmap = cm.get_cmap(name='Reds')    
+    cmap = cm.get_cmap(name='Reds')
     K = 90; r = 0.03; q = 0.02; kappa = 6.2; sgm = 0.5; rho = -0.7; theta = 0.06; lamb = 0; tau = 0.25
     for n in tqdm(range(N)):
         for i in range(1,len(tspan)):
@@ -901,8 +901,3 @@ end = time.time()
 time_elapsed = (end - start)
 print()
 print('Elapsed time: %.2f seconds' %time_elapsed)
-            
-    
-
-    
-    
